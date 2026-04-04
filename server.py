@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
+from fastapi.responses import RedirectResponse
 from typing import Optional
 import uvicorn
 import sys
@@ -12,6 +12,10 @@ from models import MyAction
 
 app = FastAPI(title="Email Triage OpenEnv")
 env = MyEnvironment()
+
+@app.get("/")
+def root():
+    return RedirectResponse(url="/docs")
 
 @app.post("/reset")
 def reset():
@@ -28,10 +32,6 @@ def step(action: dict):
 def state():
     s = env.state
     return {"episode_id": s.episode_id, "step_count": s.step_count}
-
-@app.get("/")
-def root():
-    return {"status": "ok", "message": "Email Triage OpenEnv is running"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=7860)
