@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN pip install --no-cache-dir "openenv[core]>=0.2.0" fastapi uvicorn pydantic httpx openai
+RUN pip install --no-cache-dir "openenv[core]>=0.1.0" fastapi uvicorn pydantic httpx openai
 
 EXPOSE 7860
 
