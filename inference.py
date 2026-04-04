@@ -1,103 +1,161 @@
+"""
+Inference Script — Email Triage OpenEnv
+========================================
+MANDATORY env vars before running:
+  API_BASE_URL   The API endpoint for the LLM
+  MODEL_NAME     The model identifier to use for inference
+  HF_TOKEN       Your Hugging Face / API key
+  LOCAL_IMAGE_NAME  (optional) if using from_docker_image()
+
+Defaults set only for API_BASE_URL and MODEL_NAME.
+HF_TOKEN has no default — must be set externally.
+"""
+
 import asyncio
-import os
 import json
-from openai import AsyncOpenAI
-from openenv.core.env_client.client import EnvClient
+import os
+import textwrap
+from typing import List, Optional
 
-try:
-    from models import MyAction
-except ImportError:
-    from my_env.models import MyAction
+from openai import OpenAI
+import httpx
 
-API_BASE_URL = os.environ.get("API_BASE_URL", "https://router.huggingface.co/v1")
-MODEL_NAME = os.environ.get("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
-HF_TOKEN = os.environ.get("HF_TOKEN", "")
-DOCKER_IMAGE = os.environ.get("DOCKER_IMAGE", "my_env")
-MAX_STEPS = 10
-MAX_TOTAL_REWARD = 3.0
-SUCCESS_SCORE_THRESHOLD = 0.5
+# ── Config ────────────────────────────────────────────────
+API_KEY = os.getenv("HF_TOKEN") or os.getenv("API_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+SPACE_URL = os.getenv("SPACE_URL", "https://souller-email-triage-env.hf.space")
+TASK_NAME = os.getenv("TASK_NAME", "email-triage")
+BENCHMARK = os.getenv("BENCHMARK", "email-triage-env")
 
-def log_start(task_id):
-    print(json.dumps({"type": "START", "task_id": task_id}), flush=True)
+MAX_STEPS = 3
+TEMPERATURE = 0.3
+MAX_TOKENS = 300
+SUCCESS_SCORE_THRESHOLD = 0.4
 
-def log_step(step, action, reward, done, error=None):
-    print(json.dumps({"type": "STEP", "step": step, "action": action, "reward": reward, "done": done, "error": str(error) if error else None}), flush=True)
+# ── Logging helpers ───────────────────────────────────────
+def log_start(task: str, env: str, model: str) -> None:
+    print(f"[START] task={task} env={env} model={model}", flush=True)
 
-def log_end(success, steps, score, rewards):
-    print(json.dumps({"type": "END", "success": success, "steps": steps, "score": score, "rewards": rewards}), flush=True)
 
-async def get_model_action(client, email, instruction, history):
-    system_prompt = """You are an expert email triage assistant.
-For each email, respond with a JSON object:
-- label: one of spam/personal/work/urgent
-- summary: 1-2 sentence summary
-- reply: professional reply
-- department: engineering/support/sales/billing/marketing/legal/security/management/none
-
-Respond ONLY with valid JSON."""
-
-    user_msg = f"Instruction: {instruction}\n\nEmail: {email}"
-    response = await client.chat.completions.create(
-        model=MODEL_NAME,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_msg}
-        ],
-        max_tokens=500,
-        temperature=0.3,
+def log_step(step: int, action: str, reward: float, done: bool, error: Optional[str]) -> None:
+    error_val = error if error else "null"
+    done_val = str(done).lower()
+    print(
+        f"[STEP] step={step} action={action} reward={reward:.2f} done={done_val} error={error_val}",
+        flush=True,
     )
-    text = response.choices[0].message.content.strip()
+
+
+def log_end(success: bool, steps: int, score: float, rewards: List[float]) -> None:
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards)
+    print(
+        f"[END] success={str(success).lower()} steps={steps} score={score:.3f} rewards={rewards_str}",
+        flush=True,
+    )
+
+
+# ── System prompt ─────────────────────────────────────────
+SYSTEM_PROMPT = textwrap.dedent(
+    """
+    You are an expert email triage assistant.
+    You will receive an email and must respond with a JSON object containing:
+    - "label": one of spam, personal, work, urgent
+    - "summary": a brief 1-2 sentence summary of the email
+    - "reply": a short professional reply draft
+    - "department": the department to route to (engineering, support, sales, billing, marketing, legal, security, management, none)
+
+    Respond ONLY with a valid JSON object. No extra text, no markdown, no explanation.
+    Example:
+    {"label": "urgent", "summary": "Server is down.", "reply": "We are investigating immediately.", "department": "engineering"}
+    """
+).strip()
+
+
+def get_action(client: OpenAI, email_text: str, step: int) -> dict:
+    user_prompt = f"Step: {step}\nEmail:\n{email_text}\n\nRespond with JSON only."
     try:
-        data = json.loads(text)
-        return MyAction(
-            label=data.get("label"),
-            summary=data.get("summary"),
-            reply=data.get("reply"),
-            department=data.get("department"),
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=TEMPERATURE,
+            max_tokens=MAX_TOKENS,
+            stream=False,
         )
-    except Exception:
-        return MyAction(label="work", summary=text[:100], reply="Thank you.", department="none")
+        text = (completion.choices[0].message.content or "{}").strip()
+        # Strip markdown if model wraps in ```json
+        if text.startswith("```"):
+            text = text.split("```")[1]
+            if text.startswith("json"):
+                text = text[4:]
+        return json.loads(text)
+    except Exception as exc:
+        print(f"[DEBUG] Model request failed: {exc}", flush=True)
+        return {"label": "work", "summary": "Unable to process.", "reply": "Thank you for your email.", "department": "none"}
 
-async def run_task(task_id):
-    log_start(task_id)
-    client = AsyncOpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
-    rewards = []
+
+async def main() -> None:
+    client = OpenAI(base_url=API_BASE_URL, api_key=API_KEY)
+
+    rewards: List[float] = []
     steps_taken = 0
+    score = 0.0
+    success = False
+
+    log_start(task=TASK_NAME, env=BENCHMARK, model=MODEL_NAME)
 
     try:
-        env = EnvClient(image=DOCKER_IMAGE)
-        result = await env.reset()
-        obs = result.observation
+        # ── Reset environment ──────────────────────────────
+        async with httpx.AsyncClient(timeout=30) as http:
+            reset_resp = await http.post(f"{SPACE_URL}/reset", json={})
+            reset_resp.raise_for_status()
+            reset_data = reset_resp.json()
 
-        for step in range(MAX_STEPS):
-            instruction = obs.metadata.get("instruction", "Classify this email.")
-            action = await get_model_action(client, obs.email, instruction, [])
-            result = await env.step(action)
-            obs = result.observation
-            reward = result.reward or 0.0
-            done = result.done
-            rewards.append(reward)
-            steps_taken = step + 1
-            log_step(step=step, action=str(action.label), reward=reward, done=done)
+        obs = reset_data.get("observation", {})
+        done = reset_data.get("done", False)
+
+        for step in range(1, MAX_STEPS + 1):
             if done:
                 break
 
-        score = min(max(sum(rewards) / MAX_TOTAL_REWARD, 0.0), 1.0)
+            email_text = obs.get("email", "")
+            action_dict = get_action(client, email_text, step)
+            action_str = json.dumps(action_dict, separators=(",", ":"))
+
+            # ── Step environment ───────────────────────────
+            async with httpx.AsyncClient(timeout=30) as http:
+                step_resp = await http.post(f"{SPACE_URL}/step", json=action_dict)
+                step_resp.raise_for_status()
+                step_data = step_resp.json()
+
+            obs = step_data.get("observation", {})
+            reward = float(step_data.get("reward", 0.0))
+            done = step_data.get("done", False)
+            error = None
+
+            rewards.append(reward)
+            steps_taken = step
+
+            log_step(step=step, action=action_str, reward=reward, done=done, error=error)
+
+            if done:
+                break
+
+        score = sum(rewards) / len(rewards) if rewards else 0.0
+        score = min(max(score, 0.0), 1.0)
         success = score >= SUCCESS_SCORE_THRESHOLD
-    except Exception as e:
-        score = 0.0
-        success = False
-        print(f"[DEBUG] Error: {e}", flush=True)
+
+    except Exception as exc:
+        print(f"[DEBUG] Episode error: {exc}", flush=True)
+        if not rewards:
+            rewards = [0.0]
+
     finally:
-        try:
-            await env.close()
-        except Exception:
-            pass
         log_end(success=success, steps=steps_taken, score=score, rewards=rewards)
 
-async def main():
-    for task_id in ["easy", "medium", "hard"]:
-        await run_task(task_id)
 
 if __name__ == "__main__":
     asyncio.run(main())
