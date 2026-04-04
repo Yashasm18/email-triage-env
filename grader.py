@@ -26,7 +26,6 @@ def grade(task_id, state, action, ground_truth):
         if sim > 0.5:
             reward += 0.3
 
-   )
     if task_id == "hard" and action.reply:
         sim = semantic_score(email, action.reply)
         if sim > 0.4:
