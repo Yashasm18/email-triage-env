@@ -1,11 +1,11 @@
 from pydantic import BaseModel
-
+from typing import Optional
 
 class MyAction(BaseModel):
-    label: str | None = None
-    summary: str | None = None
-    reply: str | None = None
-
+    label: Optional[str] = None
+    summary: Optional[str] = None
+    reply: Optional[str] = None
+    department: Optional[str] = None
 
 class MyObservation(BaseModel):
     email: str
