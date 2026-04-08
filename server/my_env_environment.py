@@ -161,7 +161,7 @@ class MyEnvironment(Environment):
         return MyObservation(
             email=self.current_email["email"],
             done=False,
-            reward=0.0,
+            reward=0.01,
             metadata={"task_id": self.current_task_id, "instruction": self._get_instruction()}
         )
 
