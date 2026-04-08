@@ -8,7 +8,7 @@ try:
     from .my_env_environment import MyEnvironment
 except Exception:
     from models import MyAction, MyObservation
-    from server.my_env_environment import MyEnvironment
+    from server.my_env_environment import MyEnvironment, keyword_score
 
 app = create_app(
     MyEnvironment,
@@ -18,58 +18,28 @@ app = create_app(
     max_concurrent_envs=1,
 )
 
-from fastapi import Request
-
 @app.get("/tasks")
 def list_tasks():
     return {
         "tasks": [
-            {
-                "id": "easy",
-                "description": "Classify email label: spam, personal, work, urgent",
-                "difficulty": "easy",
-                "grader": "EasyTaskRubric",
-                "reward_range": [0.01, 0.99]
-            },
-            {
-                "id": "medium",
-                "description": "Classify label + write summary + draft reply",
-                "difficulty": "medium",
-                "grader": "MediumTaskRubric",
-                "reward_range": [0.01, 0.99]
-            },
-            {
-                "id": "hard",
-                "description": "Classify label + department + summary + reply",
-                "difficulty": "hard",
-                "grader": "HardTaskRubric",
-                "reward_range": [0.01, 0.99]
-            }
+            {"id": "easy", "description": "Classify email label", "difficulty": "easy", "grader": "EasyTaskRubric", "reward_range": [0.01, 0.99]},
+            {"id": "medium", "description": "Classify + summary + reply", "difficulty": "medium", "grader": "MediumTaskRubric", "reward_range": [0.01, 0.99]},
+            {"id": "hard", "description": "Classify + department + summary + reply", "difficulty": "hard", "grader": "HardTaskRubric", "reward_range": [0.01, 0.99]}
         ]
     }
 
 @app.post("/grader")
-def run_grader(request: dict):
+async def run_grader(request: dict):
     task_id = request.get("task_id", "easy")
     action_data = request.get("action", {})
-    ground_truth = request.get("ground_truth", {})
-
-    try:
-        from models import MyAction
-    except ImportError:
-        from server.my_env_environment import MyAction
-
-    from server.my_env_environment import keyword_score
-
+    ground_truth = request.get("ground_truth", {"label": "work"})
     action = MyAction(**action_data)
     reward = 0.0
-
     if task_id == "easy":
         if action.label == ground_truth.get("label"):
             reward = 0.85
         elif action.label in ["spam", "personal", "work", "urgent"]:
             reward = 0.15
-
     elif task_id == "medium":
         if action.label == ground_truth.get("label"):
             reward += 0.45
@@ -80,7 +50,6 @@ def run_grader(request: dict):
         kws = ground_truth.get("reply_keywords", [])
         if action.reply and kws:
             reward += 0.25 * keyword_score(action.reply, kws)
-
     elif task_id == "hard":
         if action.label == ground_truth.get("label"):
             reward += 0.35
@@ -95,7 +64,6 @@ def run_grader(request: dict):
             reward += 0.20
         elif action.department and action.department != "none":
             reward += 0.04
-
     reward = min(max(reward, 0.01), 0.99)
     return {"task_id": task_id, "reward": reward}
 
