@@ -5,9 +5,7 @@ try:
     from openenv.core.env_server.interfaces import Environment
     from openenv.core.env_server.types import State
 except ImportError:
-    # Fallback if openenv not installed
-    class Environment:
-        pass
+    class Environment: pass
     class State:
         def __init__(self, episode_id, step_count):
             self.episode_id = episode_id
@@ -20,30 +18,83 @@ except ImportError:
     from .models import MyAction, MyObservation
     from .grader import grade
 
-
+# ==========================================================
+# 🧠 EXPERT DATASET: CORPORATE TRIAGE SCENARIOS
+# ==========================================================
 TASKS = {
-    "easy": [
-        {"email": "URGENT: Production server is down, fix immediately!", "label": "urgent", "department": "engineering", "ground_truth": {"label": "urgent"}},
-        {"email": "Win a free iPhone now!!! Click here to claim your prize!!!", "label": "spam", "department": "none", "ground_truth": {"label": "spam"}},
-        {"email": "Hey, are we still on for dinner tonight?", "label": "personal", "department": "none", "ground_truth": {"label": "personal"}},
-        {"email": "Reminder: submit your project report by tomorrow", "label": "work", "department": "management", "ground_truth": {"label": "work"}},
+    "email-classification": [
+        {
+            "email": "URGENT: Database cluster 'prod-db-01' is reporting 98% disk utilization. Performance is degrading rapidly across all services.", 
+            "label": "urgent", 
+            "ground_truth": {"label": "urgent"}
+        },
+        {
+            "email": "FINAL NOTICE: Your domain registration for 'company-hq.com' expires in 24 hours. Click here to renew immediately and avoid downtime.", 
+            "label": "work", 
+            "ground_truth": {"label": "work"}
+        },
+        {
+            "email": "Hey team, just a reminder about the office pizza party this Friday at 5 PM. Hope to see you all there!", 
+            "label": "personal", 
+            "ground_truth": {"label": "personal"}
+        },
+        {
+            "email": "CONGRATULATIONS! You've been selected for a $1000 Amazon Gift Card. Just complete this survey to claim your reward.", 
+            "label": "spam", 
+            "ground_truth": {"label": "spam"}
+        }
     ],
-    "medium": [
-        {"email": "Hi, I placed an order 2 weeks ago and still haven't received it. Order #12345. Please help ASAP.", "label": "urgent", "department": "support", "ground_truth": {"label": "urgent", "reply_keywords": ["sorry", "order", "track", "help", "resolve"]}},
-        {"email": "We are interested in your enterprise plan. Can you send pricing details?", "label": "work", "department": "sales", "ground_truth": {"label": "work", "reply_keywords": ["pricing", "plan", "team", "contact", "details"]}},
-        {"email": "The API is returning 500 errors since your last deployment. This is breaking our production app.", "label": "urgent", "department": "engineering", "ground_truth": {"label": "urgent", "reply_keywords": ["sorry", "issue", "fix", "team", "investigate"]}},
+
+    "urgency-detection": [
+        {
+            "email": "Subject: Critical API Timeout in EMEA Region. Since the v2.4 deployment, 15% of checkout requests in Europe are timing out. Customer support is receiving flooded tickets. We need a rollback plan or a hotfix immediately.", 
+            "label": "urgent", 
+            "ground_truth": {
+                "label": "urgent", 
+                "reply_keywords": ["deployment", "checkout", "investigate", "rollback", "hotfix", "apologize"]
+            }
+        },
+        {
+            "email": "Hi, I'm a journalist from TechCrunch. We're doing a story on your new AI features and would love to get a quote from your CTO by tomorrow morning.", 
+            "label": "work", 
+            "ground_truth": {
+                "label": "work", 
+                "reply_keywords": ["TechCrunch", "CTO", "interview", "opportunity", "press"]
+            }
+        }
     ],
-    "hard": [
-        {"email": "This is absolutely unacceptable! I've been charged twice for the same order and nobody is responding.", "label": "urgent", "department": "billing", "ground_truth": {"label": "urgent", "department": "billing", "reply_keywords": ["apologize", "refund", "immediately", "priority", "resolve", "charge"]}},
-        {"email": "Server memory usage has been climbing steadily for 3 days — now at 94%. Logs show unusual traffic patterns from 3 IPs.", "label": "urgent", "department": "security", "ground_truth": {"label": "urgent", "department": "security", "reply_keywords": ["investigate", "block", "team", "monitor", "escalate", "security"]}},
+
+    "spam-filtering": [
+        {
+            "email": "SECURITY ALERT: We've detected a massive brute-force attack on the admin gateway from multiple restricted IP ranges. Log analysis suggests an attempted SQL injection. Please initiate incident response protocols.", 
+            "label": "urgent", "department": "security", 
+            "ground_truth": {
+                "label": "urgent", "department": "security", 
+                "reply_keywords": ["incident", "protocol", "audit", "security", "mitigate", "attack"]
+            }
+        },
+        {
+            "email": "BILLING DISPUTE: I was charged for the 'Premium Enterprise' tier ($1,200) despite canceling my trial three days ago. If this isn't refunded, I will file a dispute with my bank.", 
+            "label": "urgent", "department": "billing", 
+            "ground_truth": {
+                "label": "urgent", "department": "billing", 
+                "reply_keywords": ["refund", "cancel", "dispute", "billing", "correct", "apologize"]
+            }
+        },
+        {
+            "email": "GDPR DATA REQUEST: I am writing to formally request a copy of all personal data your company holds on me, as per my rights under Article 15. Please confirm receipt.", 
+            "label": "work", "department": "legal", 
+            "ground_truth": {
+                "label": "work", "department": "legal", 
+                "reply_keywords": ["GDPR", "privacy", "compliance", "receipt", "legal"]
+            }
+        }
     ]
 }
 
-TASK_ORDER = ["easy", "medium", "hard"]
-
+TASK_ORDER = ["email-classification", "urgency-detection", "spam-filtering"]
 
 class MyEnvironment(Environment):
-
     def __init__(self):
         self._state = State(episode_id=str(uuid4()), step_count=0)
         self.current_email = None
@@ -58,7 +109,7 @@ class MyEnvironment(Environment):
         return MyObservation(
             email=self.current_email["email"],
             done=False,
-            reward=0.0,
+            reward=0.01, # Hackathon safe-range
             metadata={"task_id": self.current_task_id, "instruction": self._get_instruction()}
         )
 
@@ -69,12 +120,12 @@ class MyEnvironment(Environment):
         self.ground_truth = self.current_email["ground_truth"]
 
     def _get_instruction(self):
-        if self.current_task_id == "easy":
-            return "Classify this email. Set 'label' to one of: spam, personal, work, urgent."
-        elif self.current_task_id == "medium":
-            return "Classify this email with 'label', write a short 'summary', and draft a professional 'reply'."
+        if self.current_task_id == "email-classification":
+            return "Classify intent. Set 'label' to: spam, personal, work, or urgent."
+        elif self.current_task_id == "urgency-detection":
+            return "Analyze urgency. Provide 'label', a 1-sentence 'summary', and a professional 'reply'."
         else:
-            return "Classify this email with 'label', identify the correct 'department', write a 'summary', and draft a professional 'reply'."
+            return "Enterprise Triage. Provide 'label', correct 'department' routing, 'summary', and 'reply'."
 
     def step(self, action: MyAction, *args, **kwargs):
         self._state.step_count += 1
@@ -91,7 +142,7 @@ class MyEnvironment(Environment):
         return MyObservation(
             email=self.current_email["email"],
             done=done,
-            reward=reward,
+            reward=float(reward),
             metadata={"task_id": self.current_task_id, "instruction": self._get_instruction(), "steps_taken": self._state.step_count}
         )
 
