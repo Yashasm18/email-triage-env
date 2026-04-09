@@ -4,3 +4,10 @@ type: space
 runtime: fastapi
 app: server.app:app
 port: 7860
+tasks:
+  - id: email-classification
+    grader: grader.py
+  - id: urgency-detection
+    grader: grader.py
+  - id: spam-filtering
+    grader: grader.py
