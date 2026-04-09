@@ -1,25 +1,22 @@
 def grade(task_id, state, action, ground_truth):
-    reward = 0.0
-    correct_label = ground_truth.get("label")
-
-    # 1. ACCURACY (Weight: 50%)
-    if action.label == correct_label:
-        reward += 0.5
-    elif action.label in ["spam", "personal", "work", "urgent"]:
+    reward = 0.01 # Base signal
+    
+    # 1. Intent Detection (40%)
+    if action.label == ground_truth.get("label"):
+        reward += 0.4 
+    elif action.label in ["work", "urgent"] and ground_truth.get("label") in ["work", "urgent"]:
         reward += 0.1 
 
-    # 2. ANALYSIS QUALITY (Weight: 30%)
-    if action.summary and len(action.summary) > 25:
-        reward += 0.15
-    
-    prof_words = ["sincerely", "assist", "reach out", "support", "regards", "apologize", "immediately"]
-    if action.reply and any(word in action.reply.lower() for word in prof_words):
-        reward += 0.15
+    # 2. Routing Intelligence (30%)
+    if hasattr(action, 'department') and action.department == ground_truth.get("department"):
+        reward += 0.3
+    elif action.department != "none" and ground_truth.get("department") != "none":
+        reward += 0.1
 
-    # 3. ENTERPRISE ROUTING (Weight: 20% - Hard Tasks)
-    if task_id == "spam-filtering":
-        if hasattr(action, 'department') and action.department == ground_truth.get("department"):
-            reward += 0.2
-    
-    # Range Clip for Hackathon Validation
+    # 3. Response Quality (30%)
+    if action.reply and len(action.reply) > 30:
+        prof_terms = ["sincerely", "regards", "assist", "apologize", "immediately"]
+        count = sum(1 for term in prof_terms if term in action.reply.lower())
+        reward += min(0.3, count * 0.1) 
+
     return float(max(0.01, min(0.99, reward)))
