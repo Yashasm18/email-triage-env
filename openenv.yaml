@@ -6,8 +6,8 @@ app: server.app:app
 port: 7860
 tasks:
   - id: email-classification
-    grader: grader.py
+    grader: grader.grade
   - id: urgency-detection
-    grader: grader.py
+    grader: grader.grade
   - id: spam-filtering
-    grader: grader.py
+    grader: grader.grade
