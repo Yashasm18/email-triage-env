@@ -29,7 +29,7 @@ tasks:
 
 ![Validation Status](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/assets/validation.png)
 
-> **Phase 1 Validation:** Passed with 5/5 Green Checks. Verified on Meta PyTorch Hackathon Portal.
+> **Submission Status:** Successfully Validated (5/5 Checks). Built for the Meta PyTorch OpenEnv Hackathon.
 
 ## 🚀 Overview
 The **Email Triage Env** is a sophisticated simulation of a high-pressure corporate communication hub. It evaluates Large Language Model (LLM) agents on their capacity to act as autonomous **Incident Commanders** and **Data Privacy Officers**.
@@ -37,13 +37,13 @@ The **Email Triage Env** is a sophisticated simulation of a high-pressure corpor
 ---
 
 ## 🗺️ System Architecture: Dual-Agent Logic
-We employ a **Heuristic-Guided Agentic Loop**. The system utilizes a Primary Agent for initial Chain-of-Thought synthesis and a Secondary "Critic" Agent for quality assurance before final routing.
+We employ a **Heuristic-Guided Agentic Loop**. The system utilizes a Primary Agent for initial Chain-of-Thought synthesis and a Secondary "Quality Critic" Agent for refinement before final routing.
 
 ```mermaid
 flowchart TD
-    A[📧 Incoming Enterprise Message] --> B{🛡️ Primary Agent}
-    B -->|Chain-of-Thought Reasoning| C[📝 Draft Triage Action]
-    C --> D{🔍 Quality Critic Agent}
+    A[Incoming Enterprise Message] --> B{Primary Agent}
+    B -->|Chain-of-Thought Reasoning| C[Draft Triage Action]
+    C --> D{Quality Critic Agent}
     D -- "Logic Gap Found" --> B
-    D -- "Validated" --> E[🏁 Strategic Action]
-    E --> F[📊 Reward Function]
+    D -- "Validated" --> E[Strategic Action]
+    E --> F[Reward Function]
