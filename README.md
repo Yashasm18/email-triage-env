@@ -1,8 +1,13 @@
 ---
 title: Email Triage Env
 emoji: 🚀
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
 license: apache-2.0
-short_description: Autonomous Agent for Enterprise Email Triage and Routing.
+short_description: Agentic Benchmark for Enterprise Security & Data Governance.
+pinned: false
 tags:
   - openenv
   - agents
@@ -20,71 +25,30 @@ tasks:
 ---
 
 # 📧 Intelligent Email Triage OpenEnv
-**An Agentic Benchmark for Automated Enterprise Communication and Routing**
+**A High-Precision Agentic Benchmark for Enterprise Governance and Security Routing**
 
 ![Validation Status](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/assets/validation.png)
 
-> **Submission Status:** Fully Validated with 5/5 Green Checks on the Meta PyTorch Hackathon Portal.
+> **Phase 1 Validation:** Passed with 5/5 Green Checks. Verified on Meta PyTorch Hackathon Portal.
 
 ## 🚀 Overview
-The **Email Triage Env** is a sophisticated simulation of a high-volume corporate communication hub. It evaluates Large Language Model (LLM) agents on their ability to act as an autonomous **First-Line Digital Responder**. 
+The **Email Triage Env** is a sophisticated simulation of a high-pressure corporate communication hub. It evaluates Large Language Model (LLM) agents on their capacity to act as autonomous **Incident Commanders** and **Data Privacy Officers**.
 
-Unlike simple classifiers, this environment tests for **contextual intelligence**, **professional drafting**, and **adversarial robustness**—specifically the ability to distinguish between critical infrastructure downtime and high-pressure social engineering (phishing).
-
----
-
-## 📊 Performance Benchmarks (Team Soul Agent)
-We evaluated our dual-agent architecture (Draft + Review) powered by **Qwen-2.5-72B**. The inclusion of the **Self-Correction Loop** provided a significant boost in routing precision for high-stakes tasks.
-
-| Task Tier | Accuracy (Standard Bot) | **Accuracy (Team Soul Agent)** | Avg. Reward |
-| :--- | :--- | :--- | :--- |
-| **Foundational** (Classification) | 91% | **98%** | 0.96 |
-| **Analytic** (Summarization) | 76% | **88%** | 0.84 |
-| **Advanced Routing** (Security/Legal) | 58% | **84%** | 0.79 |
-
-> **Key Finding:** The "Reviewer Agent" successfully caught and corrected 26% of initial misclassifications in the "Hard" tier, specifically preventing the misrouting of **SQL Injection alerts** and **GDPR data requests**.
+The benchmark focuses on three critical enterprise pillars:
+1. **Security Triage:** Distinguishing between social engineering and technical alerts.
+2. **Regulatory Compliance:** Identifying high-stakes GDPR and legal requests.
+3. **SRE Contextualization:** Synthesizing technical downtime reports for rapid engineering escalation.
 
 ---
 
-## 🖼️ Environment Preview
-Below is the interactive **OpenEnv Playground** served via FastAPI. It allows for manual testing of the agent's triage logic across foundational and advanced tasks.
+## 🗺️ System Architecture: Dual-Agent Logic
+We employ a **Heuristic-Guided Agentic Loop**. The system utilizes a Primary Agent for initial Chain-of-Thought synthesis and a Secondary "Critic" Agent for quality assurance before final routing.
 
-![Playground UI](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/assets/playground.png)
-
----
-
-## 🎮 Agent Interface Specification
-
-### 👁️ Observation Space
-The agent receives a rich state via the OpenEnv `MyObservation` model:
-- **Email Content:** Raw, unstructured text of the incoming corporate message.
-- **Task Metadata:** Dynamic instructions tailored to the current difficulty tier.
-- **Contextual Signals:** Implicit cues regarding technical severity and business risk.
-
-### ⌨️ Action Space
-The agent must provide a structured JSON response following a strict schema:
-- `label`: Discrete categorization (`spam`, `personal`, `work`, `urgent`).
-- `summary`: A concise natural language analysis (Chain-of-Thought enabled).
-- `reply`: A context-aware, professional response draft.
-- `department`: Strategic routing to one of 8 corporate departments (Engineering, Security, Legal, Billing, etc.).
-
----
-
-## 🧠 Reward Philosophy: Partial Progress Signals
-Following the **Meta OpenEnv Rubric**, our environment implements a **Granular Reward Function** to provide "denser" feedback signals for reinforcement learning:
-
-| Signal Component | Weight | Logic |
-| :--- | :--- | :--- |
-| **Intent Match** | 40% | Full reward for exact label; partial reward for recognizing "High-Priority" (Work/Urgent). |
-| **Routing Accuracy** | 30% | Rewards identifying the correct department for technical escalations. |
-| **Linguistic Quality** | 30% | Measured by summary relevance and professional "Corporate Markers" in the reply. |
-
----
-
-## 🏗 Technical Architecture
-- **Engine:** Built on the OpenEnv framework using a **Dockerized FastAPI** backend.
-- **Agentic Workflow:** Employs a **Multi-turn reasoning loop** (Draft -> Review -> Refine).
-- **Inference Logic:** Utilizing Chain-of-Thought prompting to enforce logical consistency before final output.
-
----
-*Developed for the Meta PyTorch Hackathon x Scaler School of Technology.*
+```mermaid
+flowchart TD
+    A[📧 Incoming Enterprise Message] --> B{🛡️ Primary Agent}
+    B -->|Chain-of-Thought Reasoning| C[📝 Draft Triage Action]
+    C --> D{🔍 Quality Critic Agent}
+    D -- "Inconsistencies Found" --> B
+    D -- "Validated" --> E[🏁 Strategic Action]
+    E --> F[📊 Reward Function]
