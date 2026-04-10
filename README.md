@@ -27,12 +27,17 @@ tasks:
 # 📧 Intelligent Email Triage OpenEnv
 **A High-Precision Agentic Benchmark for Enterprise Governance and Security Routing**
 
-![Validation Status](./assets/validation.png)
+![Validation Status](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/assets/validation.png)
 
 > **Phase 1 Validation:** Passed with 5/5 Green Checks. Verified on Meta PyTorch Hackathon Portal.
 
 ## 🚀 Overview
 The **Email Triage Env** is a sophisticated simulation of a high-pressure corporate communication hub. It evaluates Large Language Model (LLM) agents on their capacity to act as autonomous **Incident Commanders** and **Data Privacy Officers**.
+
+The benchmark focuses on three critical enterprise pillars:
+1. **Security Triage:** Distinguishing between social engineering and technical alerts.
+2. **Regulatory Compliance:** Identifying high-stakes GDPR and legal requests.
+3. **SRE Contextualization:** Synthesizing technical downtime reports for rapid engineering escalation.
 
 ---
 
