@@ -47,9 +47,3 @@ flowchart TD
     D -- "Logic Gap Found" --> B
     D -- "Validated" --> E[🏁 Strategic Action]
     E --> F[📊 Reward Function]
-@software{teamsoul_email_triage_2026,
-  author = {Team Soul (Yashasm18)},
-  title = {Intelligent Email Triage: An Agentic Benchmark for Enterprise Governance},
-  year = {2026},
-  url = {https://huggingface.co/spaces/souller/email-triage-env}
-}
