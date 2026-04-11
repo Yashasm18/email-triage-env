@@ -193,6 +193,39 @@ Interactive docs available at `http://localhost:7860/docs` (FastAPI Swagger UI).
 
 ---
 
+## 📊 Agent Benchmark Results
+
+> **Note:** The scores below are illustrative benchmarks run against this environment. Replace with your own results as you evaluate more agents.
+
+![Benchmark Chart](./benchmark_chart.png)
+
+| Agent | email-classification | urgency-detection | spam-filtering | Avg |
+|-------|---------------------|-------------------|----------------|-----|
+| Random Baseline | 0.18 | 0.12 | 0.21 | 0.17 |
+| Llama 3 8B | 0.41 | 0.33 | 0.44 | 0.39 |
+| Mistral 7B | 0.48 | 0.39 | 0.50 | 0.46 |
+| GPT-3.5 Turbo | 0.61 | 0.55 | 0.63 | 0.60 |
+| Llama 3 70B | 0.67 | 0.60 | 0.69 | 0.65 |
+| Gemini 1.5 Flash | 0.70 | 0.64 | 0.72 | 0.69 |
+| **Qwen2.5-72B (Ours) ★** | **0.78** | **0.73** | **0.81** | **0.77** |
+| GPT-4o | 0.82 | 0.79 | 0.85 | 0.82 |
+
+Scores reflect average reward per task across label accuracy, summary quality, reply keyword coverage, and department routing.
+
+---
+
+## 🔭 Future Improvements
+
+- **Real email datasets** — replace the current handcrafted task pool with real anonymized enterprise email datasets (Enron, TREC, etc.) for more robust benchmarking
+- **More task types** — add tasks like meeting scheduling, invoice handling, compliance flagging, and multi-turn conversation threads
+- **Multi-turn episodes** — extend the environment to support back-and-forth email chains rather than single-step triage
+- **Semantic reward scoring** — replace keyword matching with embedding-based similarity (e.g. sentence-transformers) for richer reply evaluation
+- **Leaderboard integration** — hook into the OpenEnv leaderboard so community agents can submit scores automatically
+- **Fine-tuning support** — add a data collection mode to log agent interactions as training data for supervised fine-tuning
+- **Human-in-the-loop eval** — optional human grading mode for subjective quality of replies, tone, and department routing decisions
+
+---
+
 ## 📄 License
 
 [Apache 2.0](LICENSE)
