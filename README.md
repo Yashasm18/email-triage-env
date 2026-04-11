@@ -46,9 +46,9 @@ We move beyond simple "Input-Output" classification. Our architecture employs a 
 
 ```mermaid
 flowchart TD
-    A[Incoming Corporate Email] --> B[🛡️ Team Soul Agent]
-    B -->|Chain-of-Thought Reasoning| C[📝 Draft Triage Action]
-    C --> D[🔍 Self-Correction Critic]
+    A[Incoming Corporate Email] --> B[Team Soul Agent]
+    B -->|Chain-of-Thought Reasoning| C[Draft Triage Action]
+    C --> D[Self-Correction Critic]
     D -- "Refinement Needed" --> B
-    D -- "Validated" --> E[🏁 Strategic Routing]
-    E --> F[📊 Reward Function]
+    D -- "Validated" --> E[Strategic Routing]
+    E --> F[Reward Function]
