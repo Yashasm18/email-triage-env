@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 import uvicorn, sys, os
 
-# Ensures the server can find my_env_environment.py in the same folder
+# Ensures the server can find files in the same folder
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -25,9 +25,9 @@ def health():
 def get_tasks():
     return {
         "tasks": [
-            {"id": "easy", "description": "Classify email label only", "difficulty": "easy", "reward_range": [0.01, 0.99]},
-            {"id": "medium", "description": "Classify + summarize + reply", "difficulty": "medium", "reward_range": [0.01, 0.99]},
-            {"id": "hard", "description": "Classify + department + summarize + reply", "difficulty": "hard", "reward_range": [0.01, 0.99]}
+            {"id": "email-classification", "description": "Classify email intent only", "difficulty": "easy", "reward_range": [0.01, 0.99]},
+            {"id": "urgency-detection", "description": "Classify + summarize + reply", "difficulty": "medium", "reward_range": [0.01, 0.99]},
+            {"id": "spam-filtering", "description": "Classify + department + summarize + reply", "difficulty": "hard", "reward_range": [0.01, 0.99]}
         ]
     }
 
@@ -61,7 +61,7 @@ def step(action: dict):
 @app.post("/grader")
 async def run_grader(request: Request):
     data = await request.json()
-    task_id = data.get("task_id", "easy")
+    task_id = data.get("task_id", "email-classification")
     action_data = data.get("action", {})
     ground_truth = data.get("ground_truth", {"label": "work"})
 
