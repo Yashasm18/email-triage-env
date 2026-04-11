@@ -2,7 +2,7 @@
 
 > An agentic Reinforcement Learning benchmark environment built on the **[OpenEnv](https://github.com/meta-pytorch/OpenEnv) framework** — evaluates LLM agents on enterprise email triage: classify, summarize, route, and reply.
 
-![CI](https://github.com/Yashasm18/email-triage-env/actions/workflows/ci.yml/badge.svg)
+![CI Status](https://github.com/Yashasm18/email-triage-env/actions/workflows/ci.yml/badge.svg)
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 ![OpenEnv](https://img.shields.io/badge/OpenEnv-Compatible-orange)
