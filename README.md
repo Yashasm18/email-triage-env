@@ -8,6 +8,8 @@
 ![OpenEnv](https://img.shields.io/badge/OpenEnv-Compatible-orange)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Server-009688?logo=fastapi&logoColor=white)
 ![License](https://img.shields.io/badge/License-Apache%202.0-green)
+> 🌐 **Live Demo:** [souller-email-triage-env.hf.space](https://souller-email-triage-env.hf.space) — try the API instantly, no setup needed.
+
 
 ---
 
@@ -154,8 +156,11 @@ print(result["done"])     # True after all steps complete
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| `GET`  | `/health` | Check server health status |
+| `GET`  | `/tasks` | List all available tasks with difficulty levels |
 | `POST` | `/reset` | Start a new episode, get first observation |
-| `POST` | `/step` | Submit `MyAction`, receive reward + next observation |
+| `POST` | `/step` | Submit `MyAction`, receive reward + next observation + feedback |
+| `POST` | `/grader` | Grade a specific action against ground truth |
 | `GET`  | `/state` | Get current `episode_id` and `step_count` |
 
 Interactive docs available at `http://localhost:7860/docs` (FastAPI Swagger UI).
