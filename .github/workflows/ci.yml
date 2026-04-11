@@ -21,17 +21,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install fastapi uvicorn pydantic openai httpx pytest openenv-core
+          pip install fastapi uvicorn pydantic openai httpx openenv-core
 
-      - name: Start FastAPI Server in Background
-        # This starts your server so the agent has something to talk to
+      - name: Start SecureOps Server
+        # Starts the server in the background so the agent can talk to it
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/server
           python server/app.py &
-          sleep 10 # Wait for server to boot
+          sleep 10 # Give the server time to boot up
 
-      - name: Run Validation Test (Inference)
-        # This runs your actual agent logic as the test
+      - name: Run Agent Validation
+        # Uses the HF_TOKEN you saved in GitHub Secrets
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           API_BASE_URL: https://router.huggingface.co/v1
