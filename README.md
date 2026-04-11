@@ -1,86 +1,62 @@
 ---
-title: AntiGravity Email Triage
-emoji: 🚀
-colorFrom: blue
-colorTo: green
+title: GovOps Sentinel Benchmark
+emoji: 🛡️
+colorFrom: red
+colorTo: black
 sdk: docker
 app_port: 7860
 license: apache-2.0
-short_description: High-Precision Agentic Benchmark for Enterprise Security Triage.
+short_description: Agentic Benchmark for Security & Governance Triage.
 pinned: false
 tags:
   - openenv
-  - agents
-  - meta-pytorch-hackathon
+  - ai-agents
+  - cybersecurity
+  - governance
   - reinforcement-learning
-  - research
 tasks:
-  - id: email-classification
+  - id: L1-triage
     type: text-classification
     grader: grader.grade
-  - id: urgency-detection
+  - id: L2-incident-response
     type: text-classification
     grader: grader.grade
-  - id: spam-filtering
+  - id: L3-governance-audit
     type: text-classification
     grader: grader.grade
 ---
 
-# 🚀 AntiGravity: Enterprise Governance & Security Triage
+# 🛡️ GovOps Sentinel: Enterprise Governance & Security Triage
 **An Autonomous Agentic Benchmark for High-Stakes Corporate Incident Management**
 
 ![Validation Status](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/assets/validation.png)
 
-> **Phase 1 Status:** Successfully Validated (5/5 Checks). Fully compliant with Meta OpenEnv Spec v1.0.
+> **Phase 2 Technical Spec:** Optimized for Meta OpenEnv v1.0. High-precision infrastructure logic enabled.
 
 ---
 
-## 📖 1. Abstract & Project Philosophy
-In modern enterprise environments, the "signal-to-noise" ratio in communication channels is at an all-time high. Manual triage of security alerts and data privacy requests costs companies millions in operational latency. 
+## 📖 1. Abstract
+In a modern Zero-Trust enterprise architecture, manual triage is the primary bottleneck for **Mean Time to Recovery (MTTR)**. **GovOps Sentinel** is a high-fidelity Reinforcement Learning (RL) environment designed to evaluate Large Language Model (LLM) agents on their ability to act as autonomous **Incident Commanders** and **Data Privacy Officers**.
 
-**AntiGravity** (named after the legendary Python `import antigravity` easter egg) is engineered to "lift" the cognitive weight of triage off human operators. It is not just a tool; it is a **Reinforcement Learning (RL) Benchmark** designed to evaluate an LLM agent's ability to act as an autonomous **Incident Commander** and **Data Governance Officer**.
+The benchmark challenges agents to process high-volume, unstructured enterprise signals and perform strategic routing across Security, Legal, and SRE departments while mitigating risk and ensuring regulatory compliance.
 
 ---
 
-## 🗺️ 2. System Architecture: The AntiGravity Protocol
-We utilize a **Heuristic-Guided Agentic Loop**. Standard LLM calls often suffer from hallucinations in high-pressure scenarios (routing a security threat to marketing). Our architecture employs a dual-stage **Draft-Critic** model to ensure strategic alignment.
+## 🗺️ 2. System Architecture: The Sentinel Reasoning Loop
+Standard LLMs often fail in high-stakes environments due to a lack of verification. GovOps Sentinel utilizes a **Heuristic-Guided Agentic Loop** that separates initial perception from strategic validation.
 
-### 🧠 Cognitive Reasoning Loop
-1. **Perception:** The agent ingest raw enterprise signals.
-2. **Chain-of-Thought (CoT):** The agent performs an internal audit of technical severity and legal risk.
-3. **Drafting:** A triage action is proposed in structured JSON.
-4. **Criticism:** A secondary "Quality Control" agent reviews the draft for policy violations.
-5. **Execution:** The refined action is committed to the environment.
+### Cognitive Workflow:
+1. **Perception:** Ingestion of raw enterprise signals via the Observation Space.
+2. **Analysis:** Chain-of-Thought (CoT) reasoning to identify hidden intent and security markers.
+3. **Drafting:** Generating a triage action in a machine-readable JSON schema.
+4. **Self-Correction:** A secondary "Quality Critic" audit to ensure alignment with corporate security policy.
+5. **Execution:** Committing the final action to the OpenEnv environment.
 
 ```mermaid
 flowchart TD
     A[📧 Incoming Enterprise Message] --> B{🛡️ Primary Agent}
-    B -->|Chain-of-Thought Reasoning| C[📝 Proposed Triage Action]
+    B -->|Chain-of-Thought| C[📝 Draft Triage Action]
     C --> D{🔍 Quality Critic Agent}
-    D -- "Logic Gap Detected" --> B
-    D -- "Validated Policy" --> E[🏁 Strategic Execution]
+    D -- "Logic Gap Found" --> B
+    D -- "Policy Validated" --> E[🏁 Strategic Action]
     E --> F[📊 Reward Function]
-# Clone the repository
-git clone https://github.com/Yashasm18/email-triage-env.git
-cd email-triage-env
-
-# Build and run the local container
-docker build -t antigravity-env .
-docker run -p 7860:7860 antigravity-env
-.
-├── assets/             # Visual validation & UI documentation
-├── outputs/            # Execution logs and reward history
-├── server/             # Core Infrastructure (FastAPI)
-│   ├── app.py          # Entry point with /tasks & task_id support
-│   └── my_env_environment.py  # Expert-grade RL environment
-├── grader.py           # Multi-factor reward calculation engine
-├── inference.py        # AntiGravity Dual-Agent Logic
-├── openenv.yaml        # Spec-compliant environment config
-└── requirements.txt    # Dependency manifest
-@benchmark{teamsoul_antigravity_2026,
-  author = {Team Soul (Yashasm18)},
-  title = {AntiGravity: An Agentic Benchmark for Enterprise Governance},
-  year = {2026},
-  publisher = {Hugging Face},
-  url = {https://huggingface.co/spaces/souller/email-triage-env}
-}
