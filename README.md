@@ -41,25 +41,15 @@ Each task runs up to **3 steps per episode**, cycling through the environment's 
 
 ## 🏗️ How It Works
 
-```
-Agent calls POST /reset
-        │
-        ▼
-MyEnvironment loads next task email + instruction
-        │
-        ▼
-Agent receives MyObservation { email, metadata: { task_id, instruction } }
-        │
-        ▼
-Agent calls POST /step with MyAction { label, summary, reply, department }
-        │
-        ▼
-grader.grade() scores the action (label match + summary quality + reply keyword coverage + department routing)
-        │
-        ▼
-Returns { reward: 0.0–1.0, done: bool, observation: next email }
-        │
-   (repeats up to 3 steps, then done=True)
+```mermaid
+flowchart TD
+    A([POST /reset]) --> B[Environment loads task\nEmail + instruction selected]
+    B --> C[MyObservation → agent\nemail · task_id · instruction]
+    C --> D[Dual-stage inference\nDraft pass → Reviewer pass]
+    D --> E([POST /step\nlabel · summary · reply · department])
+    E --> F[grader.grade scores action\n+label +summary +reply +department]
+    F --> G([Reward returned\n0.01 – 0.99 · done after 3 steps])
+    G -- repeats up to 3x --> C
 ```
 
 The inference pipeline (`inference.py`) uses a **Dual-Stage Refinement** approach:
