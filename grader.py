@@ -7,10 +7,10 @@ def keyword_score(text, keywords):
 
 
 def grade(task_id, state, action, ground_truth):
-    reward = 0.01  # Base signal
+    reward = 0.01
     feedback_parts = []
 
-    # 1. Intent Detection (40%)
+    # 1. Label check (works for all task types)
     if action.label == ground_truth.get("label"):
         reward += 0.4
         feedback_parts.append(f"✅ Correct label '{action.label}'.")
@@ -22,35 +22,38 @@ def grade(task_id, state, action, ground_truth):
     else:
         feedback_parts.append(f"❌ Invalid label '{action.label}'. Must be one of: spam, personal, work, urgent.")
 
-    # 2. Routing Intelligence (30%)
-    if hasattr(action, 'department') and action.department == ground_truth.get("department"):
-        reward += 0.3
-        feedback_parts.append(f"✅ Correct department '{action.department}'.")
-    elif hasattr(action, 'department') and action.department and action.department != "none" and ground_truth.get("department") and ground_truth.get("department") != "none":
-        reward += 0.1
-        feedback_parts.append(f"⚠️ Department '{action.department}' is wrong. Expected '{ground_truth.get('department')}'.")
-    elif ground_truth.get("department") and action.department != ground_truth.get("department"):
-        feedback_parts.append(f"❌ Missing correct department. Expected '{ground_truth.get('department')}'.")
-
-    # 3. Summary quality
-    if action.summary and len(action.summary) > 10:
-        feedback_parts.append("✅ Summary provided.")
-    elif ground_truth.get("reply_keywords"):
-        feedback_parts.append("⚠️ Summary missing or too short.")
-
-    # 4. Response Quality (30%)
-    if action.reply and len(action.reply) > 30:
-        prof_terms = ["sincerely", "regards", "assist", "apologize", "immediately"]
-        count = sum(1 for term in prof_terms if term in action.reply.lower())
-        reward += min(0.3, count * 0.1)
-        if count >= 2:
-            feedback_parts.append(f"✅ Professional reply with {count} quality terms.")
-        elif count == 1:
-            feedback_parts.append("⚠️ Reply is okay but could be more professional.")
+    # 2. Department check (spam-filtering task)
+    if ground_truth.get("department"):
+        if hasattr(action, 'department') and action.department == ground_truth.get("department"):
+            reward += 0.3
+            feedback_parts.append(f"✅ Correct department '{action.department}'.")
+        elif hasattr(action, 'department') and action.department and action.department != "none":
+            reward += 0.1
+            feedback_parts.append(f"⚠️ Department '{action.department}' is wrong. Expected '{ground_truth.get('department')}'.")
         else:
-            feedback_parts.append("⚠️ Reply lacks professional tone.")
-    elif ground_truth.get("reply_keywords"):
-        feedback_parts.append("❌ No reply provided.")
+            feedback_parts.append(f"❌ Missing department. Expected '{ground_truth.get('department')}'.")
+
+    # 3. Summary check (urgency-detection and spam-filtering tasks)
+    if task_id in ["urgency-detection", "spam-filtering"]:
+        if action.summary and len(action.summary) > 10:
+            feedback_parts.append("✅ Summary provided.")
+        else:
+            feedback_parts.append("⚠️ Summary missing or too short.")
+
+    # 4. Reply quality check (urgency-detection and spam-filtering tasks)
+    if task_id in ["urgency-detection", "spam-filtering"]:
+        if action.reply and len(action.reply) > 30:
+            prof_terms = ["sincerely", "regards", "assist", "apologize", "immediately"]
+            count = sum(1 for term in prof_terms if term in action.reply.lower())
+            reward += min(0.3, count * 0.1)
+            if count >= 2:
+                feedback_parts.append(f"✅ Professional reply with {count} quality terms.")
+            elif count == 1:
+                feedback_parts.append("⚠️ Reply okay but could be more professional.")
+            else:
+                feedback_parts.append("⚠️ Reply lacks professional tone.")
+        else:
+            feedback_parts.append("❌ No reply or reply too short.")
 
     reward = float(max(0.01, min(0.99, reward)))
     feedback = " ".join(feedback_parts) if feedback_parts else "No feedback available."
