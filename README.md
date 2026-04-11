@@ -1,6 +1,6 @@
 # 📧 Email Triage OpenEnv
 
-> An agentic Reinforcement Learning benchmark environment built on the **[OpenEnv](https://github.com/openenv/openenv) framework** — evaluates LLM agents on enterprise email triage: classify, summarize, route, and reply.
+> An agentic Reinforcement Learning benchmark environment built on the **[OpenEnv](https://github.com/meta-pytorch/OpenEnv) framework** — evaluates LLM agents on enterprise email triage: classify, summarize, route, and reply.
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
