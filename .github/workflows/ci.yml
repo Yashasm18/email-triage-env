@@ -25,6 +25,4 @@ jobs:
 
       - name: Run tests
         run: |
-          pytest tests/ -v --tb=short
-        env:
-          PYTHONPATH: ${{ github.workspace }}
+          cd ${{ github.workspace }} && pytest tests/ -v --tb=long
