@@ -1,5 +1,9 @@
 name: email-triage-env
 version: "1.0.0"
+spec_version: 1
+app: "server.app:app"
+port: 7860
+
 description: >
   A real-world email triage environment where an AI agent must classify,
   summarise, route, and reply to emails of increasing complexity.
@@ -20,14 +24,17 @@ tasks:
   - id: email-classification
     description: Classify the email label (spam, personal, work, urgent)
     difficulty: easy
+    grader: grader.grade
 
   - id: urgency-detection
     description: Classify label, write a summary, and draft a reply with keyword matching
     difficulty: medium
+    grader: grader.grade
 
   - id: spam-filtering
     description: Classify label, identify the correct department, write a summary, and draft a professional reply
     difficulty: hard
+    grader: grader.grade
 
 observation_space:
   type: object
