@@ -78,7 +78,10 @@ class MyEnvironment(Environment):
             done=False,
             reward=0.01,
             feedback="New episode started. " + self._get_instruction(),
-            metadata={"task_id": self.current_task_id, "instruction": self._get_instruction()}
+            metadata={
+                "task_id": self.current_task_id,
+                "instruction": self._get_instruction()
+            }
         )
 
     def _get_instruction(self):
@@ -91,24 +94,44 @@ class MyEnvironment(Environment):
 
     def step(self, action: MyAction, *args, **kwargs):
         self._state.step_count += 1
+
+        # Save current state before moving to next task
+        current_email = self.current_email["email"]
+        current_task_id = self.current_task_id
+
+        # Grade the action
         reward, feedback = grade(
-            task_id=self.current_task_id,
-            state={"email": self.current_email["email"]},
+            task_id=current_task_id,
+            state={"email": current_email},
             action=action,
             ground_truth=self.ground_truth,
         )
+
         self.task_index += 1
         done = self.task_index >= len(TASK_ORDER)
+
         if not done:
+            # Load next task
             self.current_task_id = TASK_ORDER[self.task_index]
             self.current_email = random.choice(TASKS[self.current_task_id])
             self.ground_truth = self.current_email["ground_truth"]
+            next_email = self.current_email["email"]
+            next_instruction = self._get_instruction()
+        else:
+            # Episode complete — show last email with completion message
+            next_email = current_email
+            next_instruction = "Episode complete! Call /reset to start a new episode."
+
         return MyObservation(
-            email=self.current_email["email"],
+            email=next_email,
             done=done,
             reward=float(reward),
             feedback=feedback,
-            metadata={"task_id": self.current_task_id, "instruction": self._get_instruction(), "steps_taken": self._state.step_count}
+            metadata={
+                "task_id": self.current_task_id,
+                "instruction": next_instruction,
+                "steps_taken": self._state.step_count
+            }
         )
 
     @property
