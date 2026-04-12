@@ -1,40 +1,27 @@
 name: CI
-
 on:
   push:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-
 jobs:
   test:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.10'
-
       - name: Install dependencies
-        run: |
-          pip install fastapi uvicorn pydantic openai httpx openenv-core
-
-      - name: Start SecureOps Server
-        # Starts the server in the background so the agent can talk to it
+        run: pip install fastapi uvicorn pydantic openai httpx openenv-core
+      - name: Start Background Server
         run: |
           export PYTHONPATH=$PYTHONPATH:$(pwd)/server
           python server/app.py &
-          sleep 10 # Give the server time to boot up
-
+          sleep 10
       - name: Run Agent Validation
-        # Uses the HF_TOKEN you saved in GitHub Secrets
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           API_BASE_URL: https://router.huggingface.co/v1
           SPACE_URL: http://localhost:7860
-        run: |
-          python inference.py
+        run: python inference.py
