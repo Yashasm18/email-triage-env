@@ -13,7 +13,7 @@
 > This is a submission for the **Meta × HuggingFace × Scaler OpenEnv Hackathon 2026**.
 
 > [!TIP]
-> Live demo: **https://souller-email-triage-env.hf.space/docs**
+> Live demo: **https://huggingface.co/spaces/souller/email-triage-env**
 
 ---
 
