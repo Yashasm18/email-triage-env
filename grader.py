@@ -1,48 +1,88 @@
+def keyword_score(text, keywords):
+    if not text or not keywords:
+        return 0.0
+    text_lower = text.lower()
+    hits = sum(1 for kw in keywords if kw.lower() in text_lower)
+    return hits / len(keywords)
+
+
+def has_negation(text, label):
+    """Penalize responses that explicitly negate the correct label."""
+    if not text:
+        return False
+    text_lower = text.lower()
+    negation_patterns = [
+        f"not {label}", f"isn't {label}", f"is not {label}",
+        f"no {label}", f"not a {label}", f"not an {label}"
+    ]
+    return any(pattern in text_lower for pattern in negation_patterns)
+
+
 def grade(task_id, state, action, ground_truth):
-    """
-    Score an agent action against ground truth.
+    reward = 0.01
+    feedback_parts = []
 
-    Reward breakdown (sums to 1.0 max before clamping):
-      - Label correctness  : 0.50 (exact) or 0.10 (partial — both work/urgent)
-      - Summary quality    : 0.20 (len > 10 chars)
-      - Reply keywords     : 0.00–0.20 (hit-rate × 0.20); if no keywords required, 0.10 for any reply
-      - Department routing : 0.10 (hard tasks only, exact match)
+    correct_label = ground_truth.get("label")
 
-    Returns a float in [0.01, 0.99].
-    """
-    reward = 0.01  # base signal — never zero
+    # ── Negation penalty ──────────────────────────────────────────
+    reply_text = (action.reply or "") + " " + (action.summary or "")
+    if has_negation(reply_text, correct_label):
+        feedback_parts.append(f"❌ Negation detected — response incorrectly dismisses '{correct_label}'.")
+        reward = float(max(0.01, min(0.99, reward)))
+        feedback = "Score: 0.01. " + " ".join(feedback_parts)
+        return 0.01, feedback
 
-    # ── 1. Label correctness (50%) ──────────────────────────────────────────
-    if action.label == ground_truth.get("label"):
-        reward += 0.50
-    elif (
-        action.label in ["work", "urgent"]
-        and ground_truth.get("label") in ["work", "urgent"]
-    ):
-        reward += 0.10  # partial: recognised high-priority intent
-
-    # ── 2. Summary quality (20%) ─────────────────────────────────────────────
-    if action.summary and len(action.summary.strip()) > 10:
-        reward += 0.20
-
-    # ── 3. Reply keyword coverage (20%) ─────────────────────────────────────
-    keywords = ground_truth.get("reply_keywords", [])
-    if keywords:
-        if action.reply:
-            reply_lower = action.reply.lower()
-            hit_rate = sum(1 for kw in keywords if kw in reply_lower) / len(keywords)
-            reward += round(hit_rate * 0.20, 4)
+    # ── 1. Label check ────────────────────────────────────────────
+    if action.label == correct_label:
+        reward += 0.40
+        feedback_parts.append(f"✅ Correct label '{action.label}'.")
+    elif action.label in ["work", "urgent"] and correct_label in ["work", "urgent"]:
+        reward += 0.10
+        feedback_parts.append(f"⚠️ Label '{action.label}' is close. Expected '{correct_label}'.")
+    elif action.label in ["spam", "personal", "work", "urgent"]:
+        feedback_parts.append(f"❌ Wrong label '{action.label}'. Expected '{correct_label}'.")
     else:
-        # No keywords required — partial credit for any non-empty reply
-        if action.reply and len(action.reply.strip()) > 10:
-            reward += 0.10
+        feedback_parts.append(f"❌ Invalid label '{action.label}'. Must be: spam, personal, work, urgent.")
 
-    # ── 4. Department routing (10%, hard tasks only) ─────────────────────────
-    if task_id == "spam-filtering":  # hard difficulty
-        if (
-            action.department
-            and action.department == ground_truth.get("department")
-        ):
-            reward += 0.10
+    # ── 2. Department check ───────────────────────────────────────
+    if ground_truth.get("department"):
+        if hasattr(action, "department") and action.department == ground_truth.get("department"):
+            reward += 0.25
+            feedback_parts.append(f"✅ Correct department '{action.department}'.")
+        elif hasattr(action, "department") and action.department and action.department != "none":
+            reward += 0.08
+            feedback_parts.append(f"⚠️ Department '{action.department}' wrong. Expected '{ground_truth.get('department')}'.")
+        else:
+            feedback_parts.append(f"❌ Missing department. Expected '{ground_truth.get('department')}'.")
 
-    return float(max(0.01, min(0.99, reward)))
+    # ── 3. Summary check ──────────────────────────────────────────
+    if task_id in ["urgency-detection", "spam-filtering"]:
+        if action.summary and len(action.summary) > 15:
+            reward += 0.15
+            feedback_parts.append("✅ Good summary provided.")
+        elif action.summary and len(action.summary) > 5:
+            reward += 0.05
+            feedback_parts.append("⚠️ Summary too short.")
+        else:
+            feedback_parts.append("❌ No summary provided.")
+
+    # ── 4. Reply quality ──────────────────────────────────────────
+    if task_id in ["urgency-detection", "spam-filtering"]:
+        if action.reply and len(action.reply) > 30:
+            prof_terms = ["sincerely", "regards", "assist", "apologize",
+                          "immediately", "investigate", "escalate", "resolve"]
+            count = sum(1 for term in prof_terms if term in action.reply.lower())
+            reply_bonus = min(0.20, count * 0.05)
+            reward += reply_bonus
+            if count >= 3:
+                feedback_parts.append(f"✅ Professional reply with {count} quality terms.")
+            elif count >= 1:
+                feedback_parts.append(f"⚠️ Reply okay but could be more professional ({count} terms).")
+            else:
+                feedback_parts.append("⚠️ Reply lacks professional tone.")
+        else:
+            feedback_parts.append("❌ No reply or reply too short.")
+
+    reward = float(max(0.01, min(0.99, reward)))
+    feedback = f"Score: {reward:.2f}. " + " ".join(feedback_parts)
+    return reward, feedback
