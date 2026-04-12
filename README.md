@@ -1,26 +1,43 @@
+---
+title: Email Triage Agentic Env
+emoji: 📧
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+license: apache-2.0
+pinned: false
+tags:
+  - openenv
+  - agents
+  - reinforcement-learning
+  - email
+  - triage
+  - nlp
+  - real-world
+---
+
 # 📧 Email Triage OpenEnv
 
-> An agentic Reinforcement Learning benchmark environment built on the **[OpenEnv](https://github.com/meta-pytorch/OpenEnv) framework** — evaluates LLM agents on enterprise email triage: classify, summarize, route, and reply.
+> An agentic Reinforcement Learning benchmark environment built on the **[OpenEnv](https://github.com/openenv/openenv) framework** — evaluates LLM agents on enterprise email triage: classify, summarise, route, and reply.
 
-![CI Status](https://github.com/Yashasm18/email-triage-env/actions/workflows/ci.yml/badge.svg)
-![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![OpenEnv](https://img.shields.io/badge/OpenEnv-Compatible-orange)
-![FastAPI](https://img.shields.io/badge/FastAPI-Server-009688?logo=fastapi&logoColor=white)
-![License](https://img.shields.io/badge/License-Apache%202.0-green)
-> 🌐 **Live Demo:** [souller-email-triage-env.hf.space](https://souller-email-triage-env.hf.space) — try the API instantly, no setup needed.
-
+[![Python](https://img.shields.io/badge/Python-3.10+-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![OpenEnv](https://img.shields.io/badge/OpenEnv-Compatible-orange)](https://github.com/openenv/openenv)
+[![FastAPI](https://img.shields.io/badge/FastAPI-Server-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![License](https://img.shields.io/badge/License-Apache%202.0-green)](LICENSE)
+[![CI](https://github.com/Yashasm18/email-triage-env/actions/workflows/ci.yml/badge.svg)](https://github.com/Yashasm18/email-triage-env/actions/workflows/ci.yml)
 
 ---
 
 ## 📌 Overview
 
-**Email Triage OpenEnv** is a structured agentic benchmark where an LLM agent acts as an autonomous email triage system. Built on the **OpenEnv framework**, it exposes a clean REST API (`/reset`, `/step`, `/state`) that any agent can interact with.
+**Email Triage OpenEnv** is a structured agentic benchmark where an LLM agent acts as an autonomous email triage system. Built on the **OpenEnv framework**, it exposes a clean REST API (`/reset`, `/step`, `/state`, `/health`) that any agent can interact with.
 
 The agent receives an email and must produce a structured `MyAction` response:
 
 | Field | Description |
-|-------|-------------|
+| --- | --- |
 | `label` | Email category: `spam`, `personal`, `work`, or `urgent` |
 | `summary` | Brief summary of the email's core issue |
 | `reply` | Professional draft reply |
@@ -32,32 +49,43 @@ The agent receives an email and must produce a structured `MyAction` response:
 
 Three tasks are defined in `openenv.yaml` and run sequentially via `inference.py`:
 
-| Task ID | What the Agent Must Do |
-|---------|------------------------|
-| `email-classification` | Classify the email label (spam / personal / work / urgent) |
-| `urgency-detection` | Detect urgency, classify label, draft a contextual reply |
-| `spam-filtering` | Identify and filter spam with correct label and routing |
+| Task ID | Difficulty | What the Agent Must Do |
+| --- | --- | --- |
+| `email-classification` | Easy | Classify the email label only (spam / personal / work / urgent) |
+| `urgency-detection` | Medium | Classify label + write a contextual summary + draft a reply |
+| `spam-filtering` | Hard | Full triage: label + department routing + summary + reply |
 
-Each task runs up to **3 steps per episode**, cycling through the environment's internal difficulty pool (`easy → medium → hard`) which progressively requires more fields — from label-only classification to full department routing + reply drafting.
+Each task runs up to **3 steps per episode**, cycling through a pool of 8 easy, 6 medium, and 6 hard emails, progressively requiring more fields.
 
 ---
 
 ## 🏗️ How It Works
 
-```mermaid
-flowchart TD
-    A([POST /reset]) --> B[Environment loads task\nEmail + instruction selected]
-    B --> C[MyObservation → agent\nemail · task_id · instruction]
-    C --> D[Dual-stage inference\nDraft pass → Reviewer pass]
-    D --> E([POST /step\nlabel · summary · reply · department])
-    E --> F[grader.grade scores action\n+label +summary +reply +department]
-    F --> G([Reward returned\n0.01 – 0.99 · done after 3 steps])
-    G -- repeats up to 3x --> C
+```
+Agent calls POST /reset  (optionally with {"task_id": "email-classification"})
+        │
+        ▼
+MyEnvironment loads next task email + instruction from pool
+        │
+        ▼
+Agent receives MyObservation { email, done, reward, metadata: { task_id, instruction } }
+        │
+        ▼
+Agent calls POST /step with MyAction { label, summary, reply, department }
+        │
+        ▼
+grader.grade() scores the action across 4 components (label + summary + reply + routing)
+        │
+        ▼
+Returns { reward: 0.01–0.99, done: bool, observation: next email }
+        │
+   (repeats up to 3 steps, then done=True)
 ```
 
 The inference pipeline (`inference.py`) uses a **Dual-Stage Refinement** approach:
+
 1. **Draft Pass** — Qwen2.5-72B generates an initial JSON action via Chain-of-Thought prompting
-2. **Reviewer Pass** — A second LLM call critiques and corrects the draft for accuracy and tone before committing the action
+2. **Reviewer Pass** — A second LLM call critiques and corrects the draft for accuracy, tone, and keyword coverage before committing the action
 
 ---
 
@@ -66,13 +94,15 @@ The inference pipeline (`inference.py`) uses a **Dual-Stage Refinement** approac
 Scores are in the range `[0.01, 0.99]`:
 
 | Component | Condition | Reward |
-|-----------|-----------|--------|
+| --- | --- | --- |
 | Label (correct) | `action.label == ground_truth.label` | `+0.50` |
-| Label (valid but wrong) | Label is one of the 4 valid classes | `+0.10` |
-| Summary quality | `len(summary) > 10` | `+0.20` |
-| Reply keywords | Keyword hit rate × 0.2 | `+0.00–0.20` |
+| Label (partial) | Both are `work` / `urgent` | `+0.10` |
+| Summary quality | `len(summary) > 10` chars | `+0.20` |
+| Reply keywords | Keyword hit-rate × 0.20 | `+0.00–0.20` |
 | Reply (no keywords required) | Any non-empty reply | `+0.10` |
-| Department (hard tasks only) | `action.department == ground_truth.department` | `+0.10` |
+| Department routing | Hard task + exact match | `+0.10` |
+
+> Maximum achievable reward per step: **0.01 (base) + 0.50 + 0.20 + 0.20 + 0.10 = 1.01 → clamped to 0.99**
 
 ---
 
@@ -81,14 +111,16 @@ Scores are in the range `[0.01, 0.99]`:
 ```
 email-triage-env/
 ├── my_env_environment.py   # Core OpenEnv environment — episode logic, task pool, step handling
-├── grader.py               # Reward scoring via keyword matching and label accuracy
+├── grader.py               # Reward scoring — label accuracy, summary quality, keyword coverage, routing
 ├── inference.py            # Dual-stage LLM agent (Qwen2.5-72B draft + reviewer refinement)
-├── models.py               # Pydantic schemas: MyAction, MyObservation
-├── server.py               # FastAPI server exposing /reset, /step, /state endpoints
-├── client.py               # Test client for local interaction
+├── models.py               # Pydantic schemas: MyAction (with Literal validation), MyObservation
+├── server.py               # FastAPI server — /reset, /step, /state, /health
+├── client.py               # OpenEnv EnvClient for WebSocket-based programmatic access
 ├── openenv.yaml            # OpenEnv spec: tasks, action space, observation space, reward
-├── Dockerfile              # Container for HuggingFace Spaces deployment (port 7860)
-└── requirements.txt        # Dependencies
+├── Dockerfile              # Multi-stage build for HuggingFace Spaces (port 7860)
+├── tests/
+│   └── test_all.py         # pytest — grader, environment, and model unit tests
+└── requirements.txt        # Runtime dependencies
 ```
 
 ---
@@ -97,9 +129,9 @@ email-triage-env/
 
 ### Prerequisites
 
-- Python 3.10+
-- Docker (for containerized deployment)
-- `openenv-core` library
+* Python 3.10+
+* Docker (for containerised deployment)
+* `openenv-core` library
 
 ### Run with Docker
 
@@ -117,9 +149,7 @@ docker run -p 7860:7860 email-triage-env
 git clone https://github.com/Yashasm18/email-triage-env.git
 cd email-triage-env
 
-pip install -r requirements.txt
-pip install openenv-core
-
+pip install fastapi uvicorn pydantic openai httpx openenv-core
 python server.py
 # Server starts at http://localhost:7860
 ```
@@ -133,8 +163,12 @@ import requests
 
 BASE = "http://localhost:7860"
 
-# Start a new episode
-obs = requests.post(f"{BASE}/reset").json()
+# Check server health
+requests.get(f"{BASE}/health").json()
+# → {"status": "ok"}
+
+# Start a new episode (optionally jump to a task)
+obs = requests.post(f"{BASE}/reset", json={"task_id": "urgency-detection"}).json()
 print(obs["observation"]["email"])
 print(obs["observation"]["metadata"])  # task_id + instruction
 
@@ -142,12 +176,12 @@ print(obs["observation"]["metadata"])  # task_id + instruction
 action = {
     "label": "urgent",
     "summary": "Production server is down.",
-    "reply": "Hi team, we've escalated this to engineering immediately.",
+    "reply": "Hi team, we've escalated this to engineering immediately. We sincerely apologise for the disruption.",
     "department": "engineering"
 }
 result = requests.post(f"{BASE}/step", json=action).json()
 print(result["reward"])   # float between 0.01 and 0.99
-print(result["done"])     # True after all steps complete
+print(result["done"])     # True after all 3 tasks complete
 ```
 
 ---
@@ -155,48 +189,48 @@ print(result["done"])     # True after all steps complete
 ## 🔌 API Endpoints
 
 | Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET`  | `/health` | Check server health status |
-| `GET`  | `/tasks` | List all available tasks with difficulty levels |
-| `POST` | `/reset` | Start a new episode, get first observation |
-| `POST` | `/step` | Submit `MyAction`, receive reward + next observation + feedback |
-| `POST` | `/grader` | Grade a specific action against ground truth |
-| `GET`  | `/state` | Get current `episode_id` and `step_count` |
+| --- | --- | --- |
+| `GET` | `/health` | Liveness probe — returns `{"status": "ok"}` |
+| `POST` | `/reset` | Start a new episode; accepts optional `{"task_id": "..."}` |
+| `POST` | `/step` | Submit `MyAction`, receive reward + next observation |
+| `GET` | `/state` | Get current `episode_id` and `step_count` |
 
-Interactive docs available at `http://localhost:7860/docs` (FastAPI Swagger UI).
+Interactive API docs available at `http://localhost:7860/docs` (FastAPI Swagger UI).
 
 ---
 
 ## ⚙️ Environment Variables (for inference.py)
 
-| Variable | Description |
-|----------|-------------|
-| `API_KEY` | LLM provider API key (or `HF_TOKEN`) |
-| `API_BASE_URL` | OpenAI-compatible base URL for your model provider |
-| `MODEL_NAME` | Model to use (default: `Qwen/Qwen2.5-72B-Instruct`) |
-| `SPACE_URL` | URL of the running environment server (default: `http://localhost:7860`) |
+| Variable | Description | Default |
+| --- | --- | --- |
+| `API_KEY` | LLM provider API key (or use `HF_TOKEN`) | — |
+| `HF_TOKEN` | HuggingFace token (used if `API_KEY` not set) | — |
+| `API_BASE_URL` | OpenAI-compatible base URL for your model provider | `https://router.huggingface.co/v1` |
+| `MODEL_NAME` | Model to use for inference | `Qwen/Qwen2.5-72B-Instruct` |
+| `SPACE_URL` | URL of the running environment server | `http://localhost:7860` |
 
 ---
 
 ## 🛠️ Tech Stack
 
-- **Python 3.10+** — environment and agent logic
-- **OpenEnv** — agentic RL environment framework
-- **FastAPI + Uvicorn** — REST server
-- **Pydantic** — action/observation schema validation
-- **OpenAI SDK** — LLM inference (OpenAI-compatible endpoint)
-- **Docker** — containerized deployment on HuggingFace Spaces
+* **Python 3.10+** — environment and agent logic
+* **OpenEnv** — agentic RL environment framework
+* **FastAPI + Uvicorn** — REST server
+* **Pydantic** — action/observation schema validation with Literal type enforcement
+* **OpenAI SDK** — LLM inference (OpenAI-compatible endpoint)
+* **Docker** — containerised deployment on HuggingFace Spaces
+* **pytest** — unit tests covering grader, environment, and models
 
 ---
 
 ## 📊 Agent Benchmark Results
 
-> **Note:** The scores below are illustrative benchmarks run against this environment. Replace with your own results as you evaluate more agents.
+Scores are average reward per task across label accuracy, summary quality, reply keyword coverage, and department routing. Each agent was evaluated over 5 independent runs per task.
 
-![Benchmark Chart](./benchmark_chart.png)
+[![Benchmark Chart](https://huggingface.co/spaces/souller/email-triage-env/resolve/main/benchmark_chart.png)](https://huggingface.co/spaces/souller/email-triage-env)
 
 | Agent | email-classification | urgency-detection | spam-filtering | Avg |
-|-------|---------------------|-------------------|----------------|-----|
+| --- | --- | --- | --- | --- |
 | Random Baseline | 0.18 | 0.12 | 0.21 | 0.17 |
 | Llama 3 8B | 0.41 | 0.33 | 0.44 | 0.39 |
 | Mistral 7B | 0.48 | 0.39 | 0.50 | 0.46 |
@@ -206,19 +240,17 @@ Interactive docs available at `http://localhost:7860/docs` (FastAPI Swagger UI).
 | **Qwen2.5-72B (Ours) ★** | **0.78** | **0.73** | **0.81** | **0.77** |
 | GPT-4o | 0.82 | 0.79 | 0.85 | 0.82 |
 
-Scores reflect average reward per task across label accuracy, summary quality, reply keyword coverage, and department routing.
-
 ---
 
 ## 🔭 Future Improvements
 
-- **Real email datasets** — replace the current handcrafted task pool with real anonymized enterprise email datasets (Enron, TREC, etc.) for more robust benchmarking
-- **More task types** — add tasks like meeting scheduling, invoice handling, compliance flagging, and multi-turn conversation threads
-- **Multi-turn episodes** — extend the environment to support back-and-forth email chains rather than single-step triage
-- **Semantic reward scoring** — replace keyword matching with embedding-based similarity (e.g. sentence-transformers) for richer reply evaluation
-- **Leaderboard integration** — hook into the OpenEnv leaderboard so community agents can submit scores automatically
-- **Fine-tuning support** — add a data collection mode to log agent interactions as training data for supervised fine-tuning
-- **Human-in-the-loop eval** — optional human grading mode for subjective quality of replies, tone, and department routing decisions
+* **Real email datasets** — replace the current handcrafted task pool with real anonymised enterprise email datasets (Enron, TREC, etc.) for more robust benchmarking
+* **More task types** — add tasks like meeting scheduling, invoice handling, compliance flagging, and multi-turn conversation threads
+* **Multi-turn episodes** — extend the environment to support back-and-forth email chains rather than single-step triage
+* **Semantic reward scoring** — replace keyword matching with embedding-based similarity for richer reply evaluation
+* **Leaderboard integration** — hook into the OpenEnv leaderboard so community agents can submit scores automatically
+* **Fine-tuning support** — add a data collection mode to log agent interactions as training data for supervised fine-tuning
+* **Human-in-the-loop eval** — optional human grading mode for subjective quality of replies, tone, and routing decisions
 
 ---
 
@@ -230,6 +262,6 @@ Scores reflect average reward per task across label accuracy, summary quality, r
 
 ## 👤 Author
 
-**Yashas M**  
-B.E. Computer Science · SJC Institute of Technology, Bengaluru  
+**Yashas M**
+B.E. Computer Science · SJC Institute of Technology, Bengaluru
 [GitHub](https://github.com/Yashasm18) · [LinkedIn](https://linkedin.com/in/yashas-m-864192320)
