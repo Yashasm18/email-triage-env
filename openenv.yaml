@@ -1,13 +1,79 @@
-spec_version: 1
 name: email-triage-env
-type: space
-runtime: fastapi
-app: server.app:app
-port: 7860
+version: "1.0.0"
+description: >
+  A real-world email triage environment where an AI agent must classify,
+  summarise, route, and reply to emails of increasing complexity.
+  Tasks progress from simple label classification (easy) to
+  multi-field routing with department assignment and professional reply drafting (hard).
+
+author: souller
+tags:
+  - openenv
+  - email
+  - triage
+  - nlp
+  - agents
+  - reinforcement-learning
+  - real-world
+
 tasks:
   - id: email-classification
-    grader: grader.grade
+    description: Classify the email label (spam, personal, work, urgent)
+    difficulty: easy
+
   - id: urgency-detection
-    grader: grader.grade
+    description: Classify label, write a summary, and draft a reply with keyword matching
+    difficulty: medium
+
   - id: spam-filtering
-    grader: grader.grade
+    description: Classify label, identify the correct department, write a summary, and draft a professional reply
+    difficulty: hard
+
+observation_space:
+  type: object
+  fields:
+    email:
+      type: string
+      description: The email text to process
+    done:
+      type: boolean
+      description: Whether the episode is complete
+    reward:
+      type: float
+      description: Reward from the last step (0.01 base on reset)
+    metadata:
+      type: object
+      description: Contains task_id, instruction, and steps_taken
+
+action_space:
+  type: object
+  fields:
+    label:
+      type: string
+      enum: [spam, personal, work, urgent]
+      description: Email classification label (required for all tasks)
+    summary:
+      type: string
+      description: Brief summary of the email's core issue (required for urgency-detection and spam-filtering)
+    reply:
+      type: string
+      description: Professional reply draft (required for urgency-detection and spam-filtering)
+    department:
+      type: string
+      enum: [engineering, support, sales, billing, marketing, legal, security, management, none]
+      description: Department to route the email to (required for spam-filtering)
+
+reward:
+  range: [0.01, 0.99]
+  description: >
+    Partial reward based on:
+      label correctness     (0.50 exact, 0.10 partial work/urgent confusion),
+      summary quality       (0.20 if len > 10 chars),
+      reply keyword coverage (0.00–0.20 based on hit-rate, or 0.10 for any non-empty reply),
+      department routing    (0.10 for spam-filtering task only).
+
+endpoints:
+  reset: POST /reset
+  step: POST /step
+  state: GET /state
+  health: GET /health
