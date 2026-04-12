@@ -17,6 +17,9 @@ dev = [
     "pytest-cov>=4.0.0",
 ]
 
+[project.scripts]
+server = "server.app:main"
+
 [tool.setuptools]
 include-package-data = true
 packages = ["server"]
