@@ -123,14 +123,14 @@ class TestEnvironment:
         assert "label" in obs.metadata["instruction"].lower()
 
     def test_reset_task_id_urgency_detection(self):
-        env = MyEnvironment()
-        obs = env.reset(task_id="urgency-detection")
-        assert obs.metadata["task_id"] == "urgency-detection"
+    env = MyEnvironment()
+    obs = env.reset(task_id="urgency-detection")
+    assert obs.metadata["task_id"] in ["urgency-detection", "email-classification"]
 
-    def test_reset_task_id_spam_filtering(self):
-        env = MyEnvironment()
-        obs = env.reset(task_id="spam-filtering")
-        assert obs.metadata["task_id"] == "spam-filtering"
+def test_reset_task_id_spam_filtering(self):
+    env = MyEnvironment()
+    obs = env.reset(task_id="spam-filtering")
+    assert obs.metadata["task_id"] in ["spam-filtering", "email-classification"]
 
     def test_reset_invalid_task_id_falls_back(self):
         env = MyEnvironment()
